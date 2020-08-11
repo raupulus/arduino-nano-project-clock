@@ -19,7 +19,7 @@
 #ifdef __AVR__
 #include <avr/power.h>
 #endif
-#define PIN 32
+#define PIN 8
 #define NUMPIXELS 12
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 1000
@@ -32,8 +32,8 @@ int COLORS[4][3]{
 };
 
 // TM1637 Display 7segmentos x 4 bloques
-const int CLK = 14; //Set the CLK pin connection to the display
-const int DIO = 33; //Set the DIO pin connection to the display
+const int CLK = SCK; //Set the CLK pin connection to the display
+const int DIO = 9; //Set the DIO pin connection to the display
  
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
 // Devuelve un int preparado para ser mostrado por la pantalla directamente
@@ -56,7 +56,7 @@ Adafruit_BMP085 bmp;
 
 
 // LiquidCrystal i2c (pantalla 16x2) Puede ser la dirección: 0x27, 0x38
-#define BACKLIGHT_PIN 4
+#define BACKLIGHT_PIN 7
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 //LiquidCrystal_I2C lcd(0x38, BACKLIGHT_PIN, POSITIVE);  // Set the LCD I2C address
 
@@ -151,9 +151,6 @@ void displayTime(){
 }
 
 void setup() {
-  // Inicio i2c, esto era para el esp32
-  //Wire.begin(21, 22);
-
   // Inicio Serial
   Serial.begin(9600);
 
@@ -163,7 +160,9 @@ void setup() {
   pixels.show(); // Inicializa todos los píxeles a 'off'
 
   // TM1637 Display 7segmentos x 4 bloques
-  display.setBrightness(0x0a); //set the diplay to maximum brightness
+  //display.setBrightness(0x0a); //set the diplay to maximum brightness
+  display.setBrightness(0x03);
+  // Mostrar decimales
   display.showNumberDec(0000, true);
 
 
@@ -180,9 +179,15 @@ void setup() {
   }
 
   // LiquidCrystal i2c (pantalla 16x2)
-  // Enciendo la luz de fondo utilizando el pin como salida, así se puede apagar desde código.
+  // DIGITAL → Enciendo la luz de fondo utilizando el pin como salida, 
+  // así se puede apagar desde código.
   pinMode ( BACKLIGHT_PIN, OUTPUT );
   digitalWrite ( BACKLIGHT_PIN, HIGH );
+
+  // LiquidCrystal i2c Analógico
+  //analogWrite(A0, 120);
+
+
   
   lcd.begin(16,2);  // initialize the lcd 
 
@@ -195,6 +200,7 @@ void setup() {
 
 void loop() {
   Serial.println("--- Comienza todo el loop ---");
+
 
   // retrieve data from DS3231
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
@@ -218,19 +224,6 @@ void loop() {
     pixels.show();
   } else {
     pixels.fill(pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]), 0, n_leds_on + 1);
-    
-    /*
-    for (int i = 0; i <= n_leds_on; i++) {
-      Serial.println("--- Iteración en el for ---");
-      if (i <= n_leds_on) {
-        pixels.setPixelColor(i, pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]));
-
-        Serial.print("Entra: ");
-        Serial.print(i);
-        Serial.println();
-      }
-    }
-        */
 
     // Muestra los leds habilitados para esta iteración
     pixels.show();
@@ -247,6 +240,10 @@ void loop() {
     value = minute;
   }
   
+
+
+
+
   //uint8_t segto;
   //segto = 0x80 | display.encodeDigit((value / 100)%10);
   //Serial.print(segto);
