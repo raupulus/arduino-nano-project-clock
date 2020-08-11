@@ -151,8 +151,8 @@ void displayTime(){
 }
 
 void setup() {
-  // Inicio i2c
-  Wire.begin(21, 22);
+  // Inicio i2c, esto era para el esp32
+  //Wire.begin(21, 22);
 
   // Inicio Serial
   Serial.begin(9600);
