@@ -8,15 +8,20 @@
 // Pausa entre loops
 const int DELAYVAL = 950;
 
-// Bosh BMP180 - Sensor de humedad y temperatura
-#include <Adafruit_BMP085.h>
-Adafruit_BMP085 bmp;
-
 // RTC DS1307 (RELOJ)
 #define DS3231_I2C_ADDRESS 0x68
 
 // IR proximity sensor
 const int IR_SENSOR_PIN = 6;
+
+// Bosh BMP180 - Sensor de humedad y temperatura
+#include <Adafruit_BMP085.h>
+Adafruit_BMP085 bmp;
+float temperature = 0;
+float pressure = 0;
+float altitude = 0;
+int sealevelpresure = 0;
+float realaltitude = 0;
 
 // RGB leds con Neopixel de 12 leds.
 #include <Adafruit_NeoPixel.h>
@@ -192,6 +197,15 @@ void displayBacklightToggle() {
   }
 }
 
+void getAtmosphericData() {
+  // Bosh BMP180
+  temperature = bmp.readTemperature();
+  pressure = bmp.readPressure(); // Presión en pascales (multiplicar por 10 para milibares)
+  altitude = bmp.readAltitude();
+  sealevelpresure = bmp.readSealevelPressure();
+  realaltitude = bmp.readAltitude(101325.0F);
+}
+
 /**
  * Muestra todos los datos por Serial.
  */
@@ -203,7 +217,17 @@ void printBySerial() {
  * Dibuja los datos por la pantalla LCD de 16x2
  */
 void printByDisplayLCD16x2() {
-
+    // LiquidCrystal i2c (pantalla 16x2)
+    lcd.clear();
+    lcd.home();
+    lcd.print(temperature);
+    lcd.print("C ");
+    lcd.print((int) (pressure / 10));
+    lcd.print("Pa ");
+    lcd.setCursor ( 0, 1 );
+    lcd.print("Altitud: ");
+    lcd.print(altitude);
+    lcd.print("m");
 }
 
 /**
@@ -259,113 +283,98 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("--- Comienza todo el loop ---");
+    Serial.println("--- Comienza todo el loop ---");
 
-  displayBacklightToggle();
-
-
-  // retrieve data from DS3231
-  getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-
-  // RGB
-  // Cada 5 segundos enciende un led (12*5 = 1 minuto)
-  // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
-  int n_leds_on = int ((second / 60.0) * 12);
-  int color_leds = int ((n_leds_on / 12.0) * 4);
-
-  Serial.print(second);
-  Serial.println();
-  Serial.print(n_leds_on);
-  Serial.println();
-  Serial.print(color_leds);
-  Serial.println();
-
-  if (n_leds_on < 1) {
-    pixels.clear();
-    pixels.setPixelColor(0, pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]));
-    pixels.show();
-  } else {
-    pixels.fill(pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]), 0, n_leds_on + 1);
-
-    // Muestra los leds habilitados para esta iteración
-    pixels.show();
-  }
+    displayBacklightToggle();
 
 
+    // retrieve data from DS3231
+    getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
 
+    // RGB
+    // Cada 5 segundos enciende un led (12*5 = 1 minuto)
+    // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
+    int n_leds_on = int ((second / 60.0) * 12);
+    int color_leds = int ((n_leds_on / 12.0) * 4);
 
-  // TM1637 Display 7segmentos x 4 bloques
-  int value;
-  if (hour > 0) {
-    value = (hour*100) + minute;
-  } else {
-    value = minute;
-  }
+    Serial.print(second);
+    Serial.println();
+    Serial.print(n_leds_on);
+    Serial.println();
+    Serial.print(color_leds);
+    Serial.println();
+
+    if (n_leds_on < 1) {
+        pixels.clear();
+        pixels.setPixelColor(0, pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]));
+        pixels.show();
+    } else {
+        pixels.fill(pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]), 0, n_leds_on + 1);
+
+        // Muestra los leds habilitados para esta iteración
+        pixels.show();
+    }
 
 
 
 
-
-  //uint8_t segto;
-  //segto = 0x80 | display.encodeDigit((value / 100)%10);
-  //Serial.print(segto);
-  //Serial.println();
-  //display.setSegments(&segto, 1, 1);
-  //display.showNumberDec(value, true);
-  //display.showNumberDecEx(value, true, true);
-  display.showNumberDecEx(value, 0b11100000, true, 4, 0);
-
-  // RTC
-  displayTime();
+    // TM1637 Display 7segmentos x 4 bloques
+    int value;
+    if (hour > 0) {
+        value = (hour*100) + minute;
+    } else {
+        value = minute;
+    }
 
 
-  // Bosh BMP180
-  float temperature = bmp.readTemperature();
-  int pressure = bmp.readPressure() / 10; // Presión en milibares
-  float altitude = bmp.readAltitude();
-  int sealevelpresure = bmp.readSealevelPressure();
-  float realaltitude = bmp.readAltitude(101325.0F);
 
-  Serial.print("Temperature = ");
-  Serial.print(temperature);
-  Serial.println(" *C");
 
-  Serial.print("Pressure = ");
-  Serial.print(pressure);
-  Serial.println(" Pa");
 
-  // Calculate altitude assuming 'standard' barometric
-  // pressure of 1013.25 millibar = 101325 Pascal
-  Serial.print("Altitude = ");
-  Serial.print(altitude);
-  Serial.println(" meters");
+    //uint8_t segto;
+    //segto = 0x80 | display.encodeDigit((value / 100)%10);
+    //Serial.print(segto);
+    //Serial.println();
+    //display.setSegments(&segto, 1, 1);
+    //display.showNumberDec(value, true);
+    //display.showNumberDecEx(value, true, true);
+    display.showNumberDecEx(value, 0b11100000, true, 4, 0);
 
-  Serial.print("Pressure at sealevel (calculated) = ");
-  Serial.print(sealevelpresure);
-  Serial.println(" Pa");
+    // RTC
+    displayTime();
 
-  // you can get a more precise measurement of altitude
-  // if you know the current sea level pressure which will
-  // vary with weather and such. If it is 1015 millibars
-  // that is equal to 101500 Pascals.
-  Serial.print("Real altitude = ");
-  Serial.print(realaltitude);
-  Serial.println(" meters");
+    // Lectura de los datos atmosféricos actuales.
+    getAtmosphericData();
 
-  Serial.println();
+    Serial.print("Temperature = ");
+    Serial.print(temperature);
+    Serial.println(" *C");
 
-  // LiquidCrystal i2c (pantalla 16x2)
-  lcd.clear();
-  lcd.home();
-  lcd.print(temperature);
-  lcd.print("C ");
-  lcd.print(pressure);
-  lcd.print("Pa ");
-  lcd.setCursor ( 0, 1 );
-  lcd.print("Altitud: ");
-  lcd.print(altitude);
-  lcd.print("m");
+    Serial.print("Pressure = ");
+    Serial.print((int) (pressure / 10));
+    Serial.println(" hPa");
 
-  // Pausa entre iteraciones
-  delay(DELAYVAL);
+    // Calculate altitude assuming 'standard' barometric
+    // pressure of 1013.25 millibar = 101325 Pascal
+    Serial.print("Altitude = ");
+    Serial.print(altitude);
+    Serial.println(" meters");
+
+    Serial.print("Pressure at sealevel (calculated) = ");
+    Serial.print(sealevelpresure);
+    Serial.println(" Pa");
+
+    // you can get a more precise measurement of altitude
+    // if you know the current sea level pressure which will
+    // vary with weather and such. If it is 1015 millibars
+    // that is equal to 101500 Pascals.
+    Serial.print("Real altitude = ");
+    Serial.print(realaltitude);
+    Serial.println(" meters");
+
+    Serial.println();
+
+    
+
+    // Pausa entre iteraciones
+    delay(DELAYVAL);
 }
