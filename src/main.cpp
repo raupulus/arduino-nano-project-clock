@@ -22,7 +22,7 @@
 #define PIN 8
 #define NUMPIXELS 12
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
-#define DELAYVAL 1000
+#define DELAYVAL 950
 // Listado de colores (verde, azul, naranja, rojo)
 int COLORS[4][3]{
     {0, 255, 0},
@@ -60,6 +60,8 @@ Adafruit_BMP085 bmp;
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 //LiquidCrystal_I2C lcd(0x38, BACKLIGHT_PIN, POSITIVE);  // Set the LCD I2C address
 
+// IR proximity sensor
+const int IR_SENSOR_PIN = 6;
 
 // Agrega timestamp al módulo RTC DS1307 (RELOJ)
 void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte
@@ -156,12 +158,12 @@ void setup() {
 
   // RGB
   pixels.begin();
-  pixels.setBrightness(30);
+  pixels.setBrightness(10);
   pixels.show(); // Inicializa todos los píxeles a 'off'
 
   // TM1637 Display 7segmentos x 4 bloques
   //display.setBrightness(0x0a); //set the diplay to maximum brightness
-  display.setBrightness(0x03);
+  display.setBrightness(0x01);
   // Mostrar decimales
   display.showNumberDec(0000, true);
 
@@ -179,23 +181,42 @@ void setup() {
   }
 
   // LiquidCrystal i2c (pantalla 16x2)
-  // DIGITAL → Enciendo la luz de fondo utilizando el pin como salida, 
-  // así se puede apagar desde código.
-  pinMode ( BACKLIGHT_PIN, OUTPUT );
-  digitalWrite ( BACKLIGHT_PIN, HIGH );
-
-  // LiquidCrystal i2c Analógico
-  //analogWrite(A0, 120);
-
+  // Se controla la salida de el pin que activa la retroiluminación por proximidad.
+  pinMode(BACKLIGHT_PIN, OUTPUT);
+  digitalWrite (BACKLIGHT_PIN, HIGH);
 
   
   lcd.begin(16,2);  // initialize the lcd 
-
+  lcd.setBacklight(LOW);
+  
   lcd.home ();                   // go home
   lcd.print("ESP32 BY RAUL");  
   lcd.setCursor ( 0, 1 );        // go to the next line
   lcd.print (" INICIALIZANDO...   ");
   delay ( 1000 );
+
+
+  // IR proximity sensor
+  pinMode (IR_SENSOR_PIN, INPUT);
+}
+
+/*
+ * Enciende o apaga el brillo de la pantalla según el detector IR de proximidad.
+ */ 
+void displayBacklightToggle() {
+  bool has_proximity = digitalRead(IR_SENSOR_PIN);
+
+  if (has_proximity) {
+    lcd.on();
+    digitalWrite (BACKLIGHT_PIN, HIGH);
+    pixels.setBrightness(180);
+    display.setBrightness(0x0a);
+  } else {
+    lcd.off();
+    digitalWrite (BACKLIGHT_PIN, LOW);
+    pixels.setBrightness(1);
+    display.setBrightness(0x00);
+  }
 }
 
 void loop() {
@@ -303,6 +324,8 @@ void loop() {
   lcd.print("Altitud: ");
   lcd.print(altitude);
   lcd.print("m");
+
+  displayBacklightToggle();
 
   // Pausa entre iteraciones
   delay(DELAYVAL);
