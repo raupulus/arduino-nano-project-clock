@@ -210,7 +210,37 @@ void getAtmosphericData() {
  * Muestra todos los datos por Serial.
  */
 void printBySerial() {
+    Serial.print("Temperature = ");
+    Serial.print(temperature);
+    Serial.println(" *C");
 
+    Serial.print("Pressure = ");
+    Serial.print(pressure);
+    Serial.println(" Pa");
+    
+    Serial.print("Pressure = ");
+    Serial.print((int) (pressure / 10));
+    Serial.println(" hPa");
+
+    // Calculate altitude assuming 'standard' barometric
+    // pressure of 1013.25 millibar = 101325 Pascal
+    Serial.print("Altitude = ");
+    Serial.print(altitude);
+    Serial.println(" meters");
+
+    Serial.print("Pressure at sealevel (calculated) = ");
+    Serial.print(sealevelpresure);
+    Serial.println(" Pa");
+
+    // you can get a more precise measurement of altitude
+    // if you know the current sea level pressure which will
+    // vary with weather and such. If it is 1015 millibars
+    // that is equal to 101500 Pascals.
+    Serial.print("Real altitude = ");
+    Serial.print(realaltitude);
+    Serial.println(" meters");
+
+    Serial.println();
 }
 
 /**
@@ -345,35 +375,10 @@ void loop() {
     // Lectura de los datos atmosféricos actuales.
     getAtmosphericData();
 
-    Serial.print("Temperature = ");
-    Serial.print(temperature);
-    Serial.println(" *C");
-
-    Serial.print("Pressure = ");
-    Serial.print((int) (pressure / 10));
-    Serial.println(" hPa");
-
-    // Calculate altitude assuming 'standard' barometric
-    // pressure of 1013.25 millibar = 101325 Pascal
-    Serial.print("Altitude = ");
-    Serial.print(altitude);
-    Serial.println(" meters");
-
-    Serial.print("Pressure at sealevel (calculated) = ");
-    Serial.print(sealevelpresure);
-    Serial.println(" Pa");
-
-    // you can get a more precise measurement of altitude
-    // if you know the current sea level pressure which will
-    // vary with weather and such. If it is 1015 millibars
-    // that is equal to 101500 Pascals.
-    Serial.print("Real altitude = ");
-    Serial.print(realaltitude);
-    Serial.println(" meters");
-
-    Serial.println();
-
-    
+    // Muestro los datos por serial y pantallas.
+    printBySerial();
+    printByDisplayLCD16x2();
+    printByDisplayHour();
 
     // Pausa entre iteraciones
     delay(DELAYVAL);
