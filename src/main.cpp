@@ -85,6 +85,7 @@ bool setDateTimeRTC(byte second, byte minute, byte hour, byte dayOfWeek,
     }
 
     Serial.print("DS1307 → Se ha establecido la hora correctamente.");
+
     return true;
 }
 
@@ -258,7 +259,7 @@ void printByDisplayLCD16x2() {
     lcd.print(temperature);
     lcd.print("C ");
     lcd.print((int) (pressure / 10));
-    lcd.print("Pa ");
+    lcd.print("hPa ");
     lcd.setCursor ( 0, 1 );
     lcd.print("Altitud: ");
     lcd.print(altitude);
@@ -326,7 +327,7 @@ void setup() {
     Wire.begin();
 
     // RTC DS1307 (RELOJ) - Inicialización en hora UTC.
-    setDateTimeRTC(00,05,00,5,13,8,20);  // seconds, minutes, hours, day, date, month, year
+    //setDateTimeRTC(00,32,00,5,13,8,20);  // seconds, minutes, hours, day, date, month, year
 
     // RGB leds con Neopixel de 12 leds.
     pixels.begin();
@@ -339,7 +340,7 @@ void setup() {
 
     // Bosh BMP180
     if (!bmp.begin()) {
-        Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+        Serial.println("No se puede inicializar el sensor Bosh BMP180");
         delay (1000);
     }
 
