@@ -46,21 +46,21 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
 /**
  * Convierte un numero decimal a su codificación en binario.
- */ 
+ */
 byte decToBcd(byte val) {
     return((val/10*16) + (val%10));
 }
 
 /**
  * Convierte un binario (decimal codificado) en un número decimal puro.
- */ 
+ */
 byte bcdToDec(byte val) {
     return((val/16*10) + (val%16));
 }
 
 /**
  * Agrega timestamp al módulo RTC DS1307 (RELOJ)
- */ 
+ */
 void setDateTimeRTC(byte second, byte minute, byte hour, byte dayOfWeek, byte
 dayOfMonth, byte month, byte year){
   // sets time and date data to DS3231
@@ -78,7 +78,7 @@ dayOfMonth, byte month, byte year){
 
 /**
  * Lee el módulo RTC DS1307 (RELOJ)
- */  
+ */
 void getDateTimeRTC(byte *second,
 byte *minute,
 byte *hour,
@@ -113,7 +113,7 @@ void displayTime(){
 
 
 
-    // TENER EN CUENTA LOS cambios de horario: 
+    // TENER EN CUENTA LOS cambios de horario:
     // sabado 28 de marzo al domingo 29 (2:00) → UTC + 2h
     // Sabado 25 de Octubre al domingo 26 (3:00) → UTC + 1h
 
@@ -162,83 +162,18 @@ void displayTime(){
 }
 
 /**
- * Muestra todos los datos por Serial.
- */ 
-void printBySerial() {
-
-}
-
-/**
- * Dibuja los datos por la pantalla LCD de 16x2
- */ 
-void printByDisplayLCD16x2() {
-
-}
-
-/**
- * Dibuja la hora en la pantalla de 7 segmentos y 4 dígitos.
- */ 
-void printByDisplayHour() {
-
-}
-
-/**
- * Calcula y enciende los leds RGB del neopixel con 12 leds.
- */ 
-void neopixelLedRgb12() {
-
-}
-
-void setup() {
-  // Inicio Serial
-  Serial.begin(9600);
-
-  // RGB
-  pixels.begin();
-  pixels.setBrightness(10);
-  pixels.show(); // Inicializa todos los píxeles a 'off'
-
-  // TM1637 Display 7segmentos x 4 bloques
-  //display.setBrightness(0x0a); //set the diplay to maximum brightness
-  display.setBrightness(0x01);
-  // Mostrar decimales
-  display.showNumberDec(0000, true);
-
-
-  // RTC DS1307 (RELOJ)
-  // Setea valores del reloj: DS1307 seconds, minutes, hours, day, date, month, year
-  //setDateTimeRTC(00,39,20,5,11,2,20);
-
-  // Bosh BMP180
-  if (!bmp.begin()) {
-      Serial.println("Could not find a valid BMP085 sensor, check wiring!");
-    delay ( 5000 );
-      //while (1) {}
+ * Funcion auxiliar para imprimir siempre 2 digitos
+ */
+void print2digits(int number) {
+  if (number >= 0 && number < 10) {
+    Serial.write('0');
   }
-
-  // LiquidCrystal i2c (pantalla 16x2)
-  // Se controla la salida de el pin que activa la retroiluminación por proximidad.
-  pinMode(DISPLAY_16X2_BACKLIGHT_PIN, OUTPUT);
-  digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
-
-  
-  lcd.begin(16,2);  // initialize the lcd 
-  lcd.setBacklight(LOW);
-  
-  lcd.home ();                   // go home
-  lcd.print("ESP32 BY RAUL");  
-  lcd.setCursor ( 0, 1 );        // go to the next line
-  lcd.print (" INICIALIZANDO...   ");
-  delay ( 1000 );
-
-
-  // IR proximity sensor
-  pinMode (IR_SENSOR_PIN, INPUT);
+  Serial.print(number);
 }
 
 /*
  * Enciende o apaga el brillo de la pantalla según el detector IR de proximidad.
- */ 
+ */
 void displayBacklightToggle() {
   bool has_proximity = digitalRead(IR_SENSOR_PIN);
 
@@ -257,6 +192,72 @@ void displayBacklightToggle() {
   }
 }
 
+/**
+ * Muestra todos los datos por Serial.
+ */
+void printBySerial() {
+
+}
+
+/**
+ * Dibuja los datos por la pantalla LCD de 16x2
+ */
+void printByDisplayLCD16x2() {
+
+}
+
+/**
+ * Dibuja la hora en la pantalla de 7 segmentos y 4 dígitos (TM1637).
+ */
+void printByDisplayHour() {
+
+}
+
+/**
+ * Calcula y enciende los leds RGB del neopixel con 12 leds.
+ */
+void neopixelLedRgb12() {
+
+}
+
+void setup() {
+    // Inicio Serial
+    Serial.begin(9600);
+
+    // RTC DS1307 (RELOJ) - Inicialización.
+    //setDateTimeRTC(00,39,20,5,11,2,20);  // seconds, minutes, hours, day, date, month, year
+
+    // RGB leds con Neopixel de 12 leds.
+    pixels.begin();
+    pixels.setBrightness(180); // Establece el brillo de los leds encendidos.
+    pixels.show(); // Inicializa todos los píxeles a 'off' (Apagados).
+
+    // TM1637 Display 7segmentos x 4 bloques
+    display.setBrightness(0x01); // 0x0a Es el brillo máximo.
+    display.showNumberDec(0000, true); // Activa para mostrar decimales
+
+    // Bosh BMP180
+    if (!bmp.begin()) {
+        Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+        delay (1000);
+    }
+
+    // LiquidCrystal i2c (pantalla 16x2) - Se controla la salida de el pin que activa la retroiluminación por proximidad.
+    pinMode(DISPLAY_16X2_BACKLIGHT_PIN, OUTPUT);
+    digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
+    lcd.begin(16,2);  // initialize the lcd
+    lcd.setBacklight(LOW);
+    lcd.home ();                   // go home
+    lcd.print("ARDUINO BY RAUL");
+    lcd.setCursor ( 0, 1 );        // go to the next line
+    lcd.print (" INICIALIZANDO...   ");
+
+    // IR proximity sensor
+    pinMode(IR_SENSOR_PIN, INPUT);
+
+    delay ( 1000 );
+}
+
 void loop() {
   Serial.println("--- Comienza todo el loop ---");
 
@@ -271,7 +272,7 @@ void loop() {
   // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
   int n_leds_on = int ((second / 60.0) * 12);
   int color_leds = int ((n_leds_on / 12.0) * 4);
-  
+
   Serial.print(second);
   Serial.println();
   Serial.print(n_leds_on);
@@ -290,7 +291,7 @@ void loop() {
     pixels.show();
   }
 
-  
+
 
 
   // TM1637 Display 7segmentos x 4 bloques
@@ -300,7 +301,7 @@ void loop() {
   } else {
     value = minute;
   }
-  
+
 
 
 
@@ -320,19 +321,19 @@ void loop() {
 
   // Bosh BMP180
   float temperature = bmp.readTemperature();
-  int pressure = bmp.readPressure();
+  int pressure = bmp.readPressure() / 10; // Presión en milibares
   float altitude = bmp.readAltitude();
   int sealevelpresure = bmp.readSealevelPressure();
-  float realaltitude = bmp.readAltitude(101500);
+  float realaltitude = bmp.readAltitude(101325.0F);
 
   Serial.print("Temperature = ");
   Serial.print(temperature);
   Serial.println(" *C");
-  
+
   Serial.print("Pressure = ");
   Serial.print(pressure);
   Serial.println(" Pa");
-  
+
   // Calculate altitude assuming 'standard' barometric
   // pressure of 1013.25 millibar = 101325 Pascal
   Serial.print("Altitude = ");
@@ -350,7 +351,7 @@ void loop() {
   Serial.print("Real altitude = ");
   Serial.print(realaltitude);
   Serial.println(" meters");
-  
+
   Serial.println();
 
   // LiquidCrystal i2c (pantalla 16x2)
@@ -367,14 +368,4 @@ void loop() {
 
   // Pausa entre iteraciones
   delay(DELAYVAL);
-}
-
-/**
-   Funcion auxiliar para imprimir siempre 2 digitos
-*/
-void print2digits(int number) {
-  if (number >= 0 && number < 10) {
-    Serial.write('0');
-  }
-  Serial.print(number);
 }
