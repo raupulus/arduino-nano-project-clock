@@ -18,7 +18,7 @@ Adafruit_BMP085 bmp;
 // IR proximity sensor
 const int IR_SENSOR_PIN = 6;
 
-// RGB leds con Neopixel
+// RGB leds con Neopixel de 12 leds.
 #include <Adafruit_NeoPixel.h>
 const int LED_RGB_12_PIN = 8;
 const int LED_RGB_12_NUM_LEDS = 12;
@@ -109,6 +109,17 @@ void displayTime(){
   Serial.print(hour, DEC);
   // convert the byte variable to a decimal number when displayed
   Serial.print(":");
+
+
+
+
+    // TENER EN CUENTA LOS cambios de horario: 
+    // sabado 28 de marzo al domingo 29 (2:00) → UTC + 2h
+    // Sabado 25 de Octubre al domingo 26 (3:00) → UTC + 1h
+
+
+
+
   if (minute<10){
     Serial.print("0");
   }
@@ -148,6 +159,34 @@ void displayTime(){
     Serial.println("Sábado");
     break;
   }
+}
+
+/**
+ * Muestra todos los datos por Serial.
+ */ 
+void printBySerial() {
+
+}
+
+/**
+ * Dibuja los datos por la pantalla LCD de 16x2
+ */ 
+void printByDisplayLCD16x2() {
+
+}
+
+/**
+ * Dibuja la hora en la pantalla de 7 segmentos y 4 dígitos.
+ */ 
+void printByDisplayHour() {
+
+}
+
+/**
+ * Calcula y enciende los leds RGB del neopixel con 12 leds.
+ */ 
+void neopixelLedRgb12() {
+
 }
 
 void setup() {
