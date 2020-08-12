@@ -9,7 +9,7 @@
 const int DELAYVAL = 950;
 
 // RTC DS1307 (RELOJ)
-#define DS3231_I2C_ADDRESS 0x68
+#define DS1307_I2C_ADDRESS 0x68
 
 // IR proximity sensor
 const int IR_SENSOR_PIN = 6;
@@ -66,35 +66,37 @@ byte bcdToDec(byte val) {
 /**
  * Agrega timestamp al módulo RTC DS1307 (RELOJ)
  */
-void setDateTimeRTC(byte second, byte minute, byte hour, byte dayOfWeek, byte
-dayOfMonth, byte month, byte year){
-  // sets time and date data to DS3231
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set next input to start at the seconds register
-  Wire.write(decToBcd(second)); // set seconds
-  Wire.write(decToBcd(minute)); // set minutes
-  Wire.write(decToBcd(hour)); // set hours
-  Wire.write(decToBcd(dayOfWeek)); // set day of week (1=Sunday, 7=Saturday)
-  Wire.write(decToBcd(dayOfMonth)); // set date (1 to 31)
-  Wire.write(decToBcd(month)); // set month
-  Wire.write(decToBcd(year)); // set year (0 to 99)
-  Wire.endTransmission();
+bool setDateTimeRTC(byte second, byte minute, byte hour, byte dayOfWeek, 
+                    byte dayOfMonth, byte month, byte year) {
+    Wire.beginTransmission(DS1307_I2C_ADDRESS);
+    Wire.write(0x00); // set next input to start at the seconds register
+    Wire.write(decToBcd(second) & 0x7F); // set seconds
+    Wire.write(decToBcd(minute)); // set minutes
+    Wire.write(decToBcd(hour)); // set hours
+    Wire.write(decToBcd(dayOfWeek)); // set day of week (1=Sunday, 7=Saturday)
+    Wire.write(decToBcd(dayOfMonth)); // set date (1 to 31)
+    Wire.write(decToBcd(month)); // set month
+    Wire.write(decToBcd(year)); // set year (0 to 99)
+
+    // Cierra la transmisión e indica si se hizo correctamente.
+    if (Wire.endTransmission() != 0) {
+        Serial.print("DS1307 → La transmisión para establecer hora ha fallado.");
+        return false;
+    }
+
+    Serial.print("DS1307 → Se ha establecido la hora correctamente.");
+    return true;
 }
 
 /**
  * Lee el módulo RTC DS1307 (RELOJ)
  */
-void getDateTimeRTC(byte *second,
-byte *minute,
-byte *hour,
-byte *dayOfWeek,
-byte *dayOfMonth,
-byte *month,
-byte *year) {
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set DS3231 register pointer to 00h
+void getDateTimeRTC(byte *second, byte *minute, byte *hour, byte *dayOfWeek,
+                    byte *dayOfMonth, byte *month, byte *year) {
+  Wire.beginTransmission(DS1307_I2C_ADDRESS);
+  Wire.write(0); // Set DS1307 register pointer to 00h
   Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+  Wire.requestFrom(DS1307_I2C_ADDRESS, 7);
   // request seven bytes of data from DS3231 starting from register 00h
   *second = bcdToDec(Wire.read() & 0x7f);
   *minute = bcdToDec(Wire.read());
@@ -107,103 +109,106 @@ byte *year) {
 
 // Muestra datos por consola del módulo RTC DS1307 (RELOJ)
 void displayTime(){
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  // retrieve data from DS3231
-  getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-  // send it to the serial monitor
-  Serial.print(hour, DEC);
-  // convert the byte variable to a decimal number when displayed
-  Serial.print(":");
+    byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+    // retrieve data from DS3231
+    getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+    // send it to the serial monitor
+    Serial.print(hour, DEC);
+    // convert the byte variable to a decimal number when displayed
+    Serial.print(":");
 
 
 
 
-    // TENER EN CUENTA LOS cambios de horario:
-    // sabado 28 de marzo al domingo 29 (2:00) → UTC + 2h
-    // Sabado 25 de Octubre al domingo 26 (3:00) → UTC + 1h
+        // TENER EN CUENTA LOS cambios de horario:
+        // sabado 28 de marzo al domingo 29 (2:00) → UTC + 2h
+        // Sabado 25 de Octubre al domingo 26 (3:00) → UTC + 1h
 
 
 
 
-  if (minute<10){
-    Serial.print("0");
-  }
-  Serial.print(minute, DEC);
-  Serial.print(":");
-  if (second<10){
-    Serial.print("0");
-  }
-  Serial.print(second, DEC);
-  Serial.print(" ");
-  Serial.print(dayOfMonth, DEC);
-  Serial.print("/");
-  Serial.print(month, DEC);
-  Serial.print("/");
-  Serial.print(year, DEC);
-  Serial.print(" Día de la semana: ");
-  switch(dayOfWeek){
-  case 1:
-    Serial.println("Domingo");
-    break;
-  case 2:
-    Serial.println("Lunes");
-    break;
-  case 3:
-    Serial.println("Martes");
-    break;
-  case 4:
-    Serial.println("Miércoles");
-    break;
-  case 5:
-    Serial.println("Jueves");
-    break;
-  case 6:
-    Serial.println("Viernes");
-    break;
-  case 7:
-    Serial.println("Sábado");
-    break;
-  }
+    if (minute<10){
+        Serial.print("0");
+    }
+    Serial.print(minute, DEC);
+    Serial.print(":");
+    if (second<10){
+        Serial.print("0");
+    }
+    Serial.print(second, DEC);
+    Serial.print(" ");
+    Serial.print(dayOfMonth, DEC);
+    Serial.print("/");
+    Serial.print(month, DEC);
+    Serial.print("/");
+    Serial.print(year, DEC);
+    Serial.print(" Día de la semana: ");
+    switch(dayOfWeek){
+    case 1:
+        Serial.println("Domingo");
+        break;
+    case 2:
+        Serial.println("Lunes");
+        break;
+    case 3:
+        Serial.println("Martes");
+        break;
+    case 4:
+        Serial.println("Miércoles");
+        break;
+    case 5:
+        Serial.println("Jueves");
+        break;
+    case 6:
+        Serial.println("Viernes");
+        break;
+    case 7:
+        Serial.println("Sábado");
+        break;
+    }
 }
 
 /**
  * Funcion auxiliar para imprimir siempre 2 digitos
  */
 void print2digits(int number) {
-  if (number >= 0 && number < 10) {
-    Serial.write('0');
-  }
-  Serial.print(number);
+    if (number >= 0 && number < 10) {
+        Serial.write('0');
+    }
+    Serial.print(number);
 }
 
 /*
  * Enciende o apaga el brillo de la pantalla según el detector IR de proximidad.
  */
 void displayBacklightToggle() {
-  bool has_proximity = digitalRead(IR_SENSOR_PIN);
+    bool has_proximity = digitalRead(IR_SENSOR_PIN);
 
-  if (has_proximity) {
-    lcd.on();
-    lcd.backlight();
-    digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
-    pixels.setBrightness(180);
-    display.setBrightness(0x0a);
-  } else {
-    lcd.noBacklight();
-    lcd.off();
-    digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, LOW);
-    pixels.setBrightness(1);
-    display.setBrightness(0x01);
-  }
+    if (has_proximity) {
+        lcd.on();
+        lcd.backlight();
+        digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
+        pixels.setBrightness(180);
+        display.setBrightness(0x0a);
+    } else {
+        lcd.noBacklight();
+        lcd.off();
+        digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, LOW);
+        pixels.setBrightness(1);
+        display.setBrightness(0x01);
+    }
 }
 
+/**
+ * Obtiene los datos del sensor Bosh BMP180.
+ */ 
 void getAtmosphericData() {
-  // Bosh BMP180
-  temperature = bmp.readTemperature();
-  pressure = bmp.readPressure(); // Presión en pascales (multiplicar por 10 para milibares)
-  altitude = bmp.readAltitude();
-  sealevelpresure = bmp.readSealevelPressure();
-  realaltitude = bmp.readAltitude(101325.0F);
+    temperature = bmp.readTemperature();
+    pressure = bmp.readPressure(); // Presión en pascales (multiplicar por 10 para milibares)
+    altitude = bmp.readAltitude();
+    altitude = altitude >= 0 ? altitude : (altitude * -1);
+    sealevelpresure = bmp.readSealevelPressure();
+    realaltitude = bmp.readAltitude(101325.0F);
 }
 
 /**
@@ -264,22 +269,64 @@ void printByDisplayLCD16x2() {
  * Dibuja la hora en la pantalla de 7 segmentos y 4 dígitos (TM1637).
  */
 void printByDisplayHour() {
+    // TM1637 Display 7segmentos x 4 bloques
+    int value;
+    if (hour > 0) {
+        value = (hour*100) + minute;
+    } else {
+        value = minute;
+    }
 
+    //uint8_t segto;
+    //segto = 0x80 | display.encodeDigit((value / 100)%10);
+    //Serial.print(segto);
+    //Serial.println();
+    //display.setSegments(&segto, 1, 1);
+    //display.showNumberDec(value, true);
+    //display.showNumberDecEx(value, true, true);
+    display.showNumberDecEx(value, 0b11100000, true, 4, 0);
 }
 
 /**
  * Calcula y enciende los leds RGB del neopixel con 12 leds.
  */
 void neopixelLedRgb12() {
+// RGB
+    // Cada 5 segundos enciende un led (12*5 = 1 minuto)
+    // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
+    int n_leds_on = int ((second / 60.0) * 12);
+    int color_leds = int ((n_leds_on / 12.0) * 4);
 
+    /*
+    Serial.print(second);
+    Serial.println();
+    Serial.print(n_leds_on);
+    Serial.println();
+    Serial.print(color_leds);
+    Serial.println();
+    */
+
+    if (n_leds_on < 1) {
+        pixels.clear();
+        pixels.setPixelColor(0, pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]));
+        pixels.show();
+    } else {
+        pixels.fill(pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]), 0, n_leds_on + 1);
+
+        // Muestra los leds habilitados para esta iteración
+        pixels.show();
+    }
 }
 
 void setup() {
     // Inicio Serial
     Serial.begin(9600);
 
-    // RTC DS1307 (RELOJ) - Inicialización.
-    //setDateTimeRTC(00,39,20,5,11,2,20);  // seconds, minutes, hours, day, date, month, year
+    // Preparar la librería Wire (I2C)
+    Wire.begin();
+
+    // RTC DS1307 (RELOJ) - Inicialización en hora UTC.
+    setDateTimeRTC(00,05,00,5,13,8,20);  // seconds, minutes, hours, day, date, month, year
 
     // RGB leds con Neopixel de 12 leds.
     pixels.begin();
@@ -309,65 +356,17 @@ void setup() {
     // IR proximity sensor
     pinMode(IR_SENSOR_PIN, INPUT);
 
-    delay ( 1000 );
+    delay(1000);
 }
 
 void loop() {
-    Serial.println("--- Comienza todo el loop ---");
-
     displayBacklightToggle();
 
-
-    // retrieve data from DS3231
+    // Leo DateTime del módulo RTC.
     getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
 
-    // RGB
-    // Cada 5 segundos enciende un led (12*5 = 1 minuto)
-    // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
-    int n_leds_on = int ((second / 60.0) * 12);
-    int color_leds = int ((n_leds_on / 12.0) * 4);
-
-    Serial.print(second);
-    Serial.println();
-    Serial.print(n_leds_on);
-    Serial.println();
-    Serial.print(color_leds);
-    Serial.println();
-
-    if (n_leds_on < 1) {
-        pixels.clear();
-        pixels.setPixelColor(0, pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]));
-        pixels.show();
-    } else {
-        pixels.fill(pixels.Color(COLORS[color_leds][0], COLORS[color_leds][1], COLORS[color_leds][2]), 0, n_leds_on + 1);
-
-        // Muestra los leds habilitados para esta iteración
-        pixels.show();
-    }
-
-
-
-
-    // TM1637 Display 7segmentos x 4 bloques
-    int value;
-    if (hour > 0) {
-        value = (hour*100) + minute;
-    } else {
-        value = minute;
-    }
-
-
-
-
-
-    //uint8_t segto;
-    //segto = 0x80 | display.encodeDigit((value / 100)%10);
-    //Serial.print(segto);
-    //Serial.println();
-    //display.setSegments(&segto, 1, 1);
-    //display.showNumberDec(value, true);
-    //display.showNumberDecEx(value, true, true);
-    display.showNumberDecEx(value, 0b11100000, true, 4, 0);
+    // Enciendo leds correspondientes a los segundos/5
+    neopixelLedRgb12();
 
     // RTC
     displayTime();
