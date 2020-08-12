@@ -1,30 +1,30 @@
 #include <Arduino.h>
-
-// RGB leds
-#include <Adafruit_NeoPixel.h>
-
-// TM1637 Display 7segmentos x 4 bloques
-#include <TM1637Display.h>
-
-// RTC DS1307 (RELOJ)
 #include <Wire.h>
 
-// Bosh BMP180
-#include <Adafruit_BMP085.h>
-
-// LiquidCrystal i2c (pantalla 16x2)
-#include <LiquidCrystal_I2C.h>
-
-// RGB leds
 #ifdef __AVR__
-#include <avr/power.h>
+    #include <avr/power.h>
 #endif
-#define PIN 8
-#define NUMPIXELS 12
-Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
-#define DELAYVAL 950
-// Listado de colores (verde, azul, naranja, rojo)
-int COLORS[4][3]{
+
+// Pausa entre loops
+const int DELAYVAL = 950;
+
+// Bosh BMP180 - Sensor de humedad y temperatura
+#include <Adafruit_BMP085.h>
+Adafruit_BMP085 bmp;
+
+// RTC DS1307 (RELOJ)
+#define DS3231_I2C_ADDRESS 0x68
+
+// IR proximity sensor
+const int IR_SENSOR_PIN = 6;
+
+// RGB leds con Neopixel
+#include <Adafruit_NeoPixel.h>
+const int LED_RGB_12_PIN = 8;
+const int LED_RGB_12_NUM_LEDS = 12;
+Adafruit_NeoPixel pixels(LED_RGB_12_NUM_LEDS, LED_RGB_12_PIN, NEO_GRB + NEO_KHZ800);
+int COLORS[4][3] // Listado de colores (verde, azul, naranja, rojo)
+{
     {0, 255, 0},
     {0, 0, 255},
     {255, 159, 35},
@@ -32,39 +32,36 @@ int COLORS[4][3]{
 };
 
 // TM1637 Display 7segmentos x 4 bloques
-const int CLK = SCK; //Set the CLK pin connection to the display
-const int DIO = 9; //Set the DIO pin connection to the display
- 
+#include <TM1637Display.h>
+const int CLK = SCK; // Set the CLK pin connection to the display
+const int DIO = 9;   // Set the DIO pin connection to the display
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
-// Devuelve un int preparado para ser mostrado por la pantalla directamente
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;  // Devuelve un int preparado para ser mostrado por la pantalla directamente
 
-// RTC DS1307 (RELOJ)
-#define DS3231_I2C_ADDRESS 0x68
-
-// Convert normal decimal numbers to binary coded decimal
-byte decToBcd(byte val){
-  return( (val/10*16) + (val%10) );
-}
-// Convert binary coded decimal to normal decimal numbers
-byte bcdToDec(byte val){
-  return( (val/16*10) + (val%16) );
-}
-
-// Bosh BMP180
-Adafruit_BMP085 bmp;
-
-
-// LiquidCrystal i2c (pantalla 16x2) Puede ser la dirección: 0x27, 0x38
+// LiquidCrystal i2c (pantalla 16x2) - Display 7 segmentos - Puede ser la dirección: 0x27, 0x38
+#include <LiquidCrystal_I2C.h>
 #define BACKLIGHT_PIN 7
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
-//LiquidCrystal_I2C lcd(0x38, BACKLIGHT_PIN, POSITIVE);  // Set the LCD I2C address
+const int DISPLAY_16X2_BACKLIGHT_PIN = 7;
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
-// IR proximity sensor
-const int IR_SENSOR_PIN = 6;
+/**
+ * Convierte un numero decimal a su codificación en binario.
+ */ 
+byte decToBcd(byte val) {
+    return((val/10*16) + (val%10));
+}
 
-// Agrega timestamp al módulo RTC DS1307 (RELOJ)
-void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte
+/**
+ * Convierte un binario (decimal codificado) en un número decimal puro.
+ */ 
+byte bcdToDec(byte val) {
+    return((val/16*10) + (val%16));
+}
+
+/**
+ * Agrega timestamp al módulo RTC DS1307 (RELOJ)
+ */ 
+void setDateTimeRTC(byte second, byte minute, byte hour, byte dayOfWeek, byte
 dayOfMonth, byte month, byte year){
   // sets time and date data to DS3231
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -79,8 +76,10 @@ dayOfMonth, byte month, byte year){
   Wire.endTransmission();
 }
 
-// Lee el módulo RTC DS1307 (RELOJ)
-void readDS3231time(byte *second,
+/**
+ * Lee el módulo RTC DS1307 (RELOJ)
+ */  
+void getDateTimeRTC(byte *second,
 byte *minute,
 byte *hour,
 byte *dayOfWeek,
@@ -105,8 +104,7 @@ byte *year) {
 void displayTime(){
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
+  getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   // send it to the serial monitor
   Serial.print(hour, DEC);
   // convert the byte variable to a decimal number when displayed
@@ -170,20 +168,19 @@ void setup() {
 
   // RTC DS1307 (RELOJ)
   // Setea valores del reloj: DS1307 seconds, minutes, hours, day, date, month, year
-  //setDS3231time(00,39,20,5,11,2,20);
-
+  //setDateTimeRTC(00,39,20,5,11,2,20);
 
   // Bosh BMP180
   if (!bmp.begin()) {
-	  Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+      Serial.println("Could not find a valid BMP085 sensor, check wiring!");
     delay ( 5000 );
-	  //while (1) {}
+      //while (1) {}
   }
 
   // LiquidCrystal i2c (pantalla 16x2)
   // Se controla la salida de el pin que activa la retroiluminación por proximidad.
-  pinMode(BACKLIGHT_PIN, OUTPUT);
-  digitalWrite (BACKLIGHT_PIN, HIGH);
+  pinMode(DISPLAY_16X2_BACKLIGHT_PIN, OUTPUT);
+  digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
 
   
   lcd.begin(16,2);  // initialize the lcd 
@@ -208,26 +205,30 @@ void displayBacklightToggle() {
 
   if (has_proximity) {
     lcd.on();
-    digitalWrite (BACKLIGHT_PIN, HIGH);
+    lcd.backlight();
+    digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, HIGH);
     pixels.setBrightness(180);
     display.setBrightness(0x0a);
   } else {
+    lcd.noBacklight();
     lcd.off();
-    digitalWrite (BACKLIGHT_PIN, LOW);
+    digitalWrite (DISPLAY_16X2_BACKLIGHT_PIN, LOW);
     pixels.setBrightness(1);
-    display.setBrightness(0x00);
+    display.setBrightness(0x01);
   }
 }
 
 void loop() {
   Serial.println("--- Comienza todo el loop ---");
 
+  displayBacklightToggle();
+
 
   // retrieve data from DS3231
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+  getDateTimeRTC(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
 
   // RGB
-  // Cada 5 segundos en ciende un led (12*5 = 1 minuto)
+  // Cada 5 segundos enciende un led (12*5 = 1 minuto)
   // Cada bloque de 3 led cambiará de color (verde, azul, naranja, rojo)
   int n_leds_on = int ((second / 60.0) * 12);
   int color_leds = int ((n_leds_on / 12.0) * 4);
@@ -324,8 +325,6 @@ void loop() {
   lcd.print("Altitud: ");
   lcd.print(altitude);
   lcd.print("m");
-
-  displayBacklightToggle();
 
   // Pausa entre iteraciones
   delay(DELAYVAL);
