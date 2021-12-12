@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include "SPI.h"
 
 #ifdef __AVR__
     #include <avr/power.h>
@@ -327,7 +328,7 @@ void setup() {
     Wire.begin();
 
     // RTC DS1307 (RELOJ) - Inicialización en hora UTC.
-    //setDateTimeRTC(00,32,00,5,13,8,20);  // seconds, minutes, hours, day, date, month, year
+    //setDateTimeRTC(00,41,20,6,12,12,21);  // seconds, minutes, hours, day, date, month, year
 
     // RGB leds con Neopixel de 12 leds.
     pixels.begin();
